@@ -1,0 +1,2981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Node.js — Week 1 Technical Assessment</title>
+  <meta name="description" content="Official technical evaluation platform for Node.js Week 1 covering architecture, modules, asynchronous file system I/O, npm lifecycle, and native HTTP servers.">
+  
+  <!-- Inter & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- EmailJS Browser SDK (CDN v4) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <style>
+    /* ============================================================
+       BASE THEME & CSS VARIABLES
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-body: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-muted: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-focus: #3b82f6;
+
+      --text-navy-900: #0f172a;
+      --text-navy-800: #1e293b;
+      --text-navy-700: #334155;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+
+      --primary-color: #0f172a;
+      --primary-hover: #1e293b;
+
+      --green-50: #ecfdf5;
+      --green-100: #d1fae5;
+      --green-500: #10b981;
+      --green-600: #059669;
+      --green-700: #047857;
+
+      --red-50: #fef2f2;
+      --red-100: #fee2e2;
+      --red-500: #ef4444;
+      --red-600: #dc2626;
+
+      --amber-50: #fffbeb;
+      --amber-100: #fef3c7;
+      --amber-500: #f59e0b;
+      --amber-600: #d97706;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+      --shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', Consolas, Monaco, "Courier New", monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-body);
+      color: var(--text-navy-800);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Screen Views */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-navy-900);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    /* Standard Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      text-decoration: none;
+      line-height: 1.2;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-success {
+      background-color: var(--green-600);
+      color: #ffffff;
+      border-color: var(--green-600);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background-color: var(--green-700);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: var(--text-navy-700);
+      border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--bg-muted);
+      color: var(--text-navy-900);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .badge-primary {
+      background-color: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .badge-success {
+      background-color: var(--green-100);
+      color: var(--green-700);
+    }
+
+    .badge-warning {
+      background-color: var(--amber-100);
+      color: var(--amber-600);
+    }
+
+    .badge-danger {
+      background-color: var(--red-100);
+      color: var(--red-600);
+    }
+
+    /* ============================================================
+       PAGE 1 — WELCOME SCREEN
+       ============================================================ */
+    .welcome-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .welcome-card {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .welcome-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .welcome-header .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--green-600);
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome-header h1 {
+      font-size: 2.15rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+
+    .welcome-header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-box {
+      background: var(--bg-muted);
+      padding: 1.15rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .stat-box .val {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-box .lbl {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .instructions-panel {
+      background-color: #fafbfc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      margin-bottom: 2.25rem;
+    }
+
+    .instructions-panel h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .instructions-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      font-size: 0.92rem;
+      color: var(--text-navy-700);
+      line-height: 1.5;
+    }
+
+    .instructions-list li {
+      position: relative;
+      padding-left: 1.5rem;
+    }
+
+    .instructions-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0.4rem;
+      color: var(--green-600);
+      font-weight: bold;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .form-group {
+      margin-bottom: 1.75rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-navy-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      font-family: inherit;
+      font-size: 1rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: all 0.2s ease;
+      background: #ffffff;
+      color: var(--text-navy-900);
+    }
+
+    .form-group input:focus {
+      border-color: var(--text-navy-900);
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+    }
+
+    .form-group input.error {
+      border-color: var(--red-500);
+      background-color: #fffaf0;
+    }
+
+    .input-error-msg {
+      display: none;
+      color: var(--red-600);
+      font-size: 0.84rem;
+      font-weight: 500;
+      margin-top: 0.4rem;
+    }
+
+    .welcome-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* ============================================================
+       PAGE 2 — EXAMINATION INTERFACE
+       ============================================================ */
+    .exam-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .exam-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .exam-title-pill {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text-navy-900);
+      white-space: nowrap;
+    }
+
+    .student-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background-color: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-navy-700);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .timer-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-navy-900);
+      letter-spacing: 0.05em;
+      transition: all 0.3s ease;
+    }
+
+    .timer-card.warning {
+      background-color: var(--red-50);
+      border-color: var(--red-500);
+      color: var(--red-600);
+      animation: pulseWarning 1.5s infinite;
+    }
+
+    @keyframes pulseWarning {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background-color: var(--border-color);
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--green-600);
+      transition: width 0.3s ease;
+    }
+
+    .exam-body {
+      flex: 1;
+      padding: 2.25rem 0;
+    }
+
+    .exam-grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .question-card {
+      padding: 2.5rem;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .question-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .section-badge {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .question-number-badge {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-navy-900);
+    }
+
+    .marks-badge {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 0.2rem 0.65rem;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .question-prompt {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-navy-900);
+      line-height: 1.5;
+      margin-bottom: 1.85rem;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      margin-bottom: 2.25rem;
+    }
+
+    .option-card {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.15rem 1.35rem;
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      user-select: none;
+    }
+
+    .option-card:hover {
+      border-color: #cbd5e1;
+      background-color: #f8fafc;
+    }
+
+    .option-card.selected {
+      border-color: var(--green-600);
+      background-color: var(--green-50);
+      box-shadow: 0 0 0 1px var(--green-600);
+    }
+
+    .option-letter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-color);
+      background-color: var(--bg-muted);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-navy-700);
+      flex-shrink: 0;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .option-card.selected .option-letter {
+      background-color: var(--green-600);
+      border-color: var(--green-600);
+      color: #ffffff;
+    }
+
+    .option-text {
+      font-size: 0.98rem;
+      color: var(--text-navy-800);
+      line-height: 1.48;
+      flex: 1;
+      padding-top: 2px;
+    }
+
+    .option-card.selected .option-text {
+      color: var(--text-navy-900);
+      font-weight: 500;
+    }
+
+    .question-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .nav-buttons-left, .nav-buttons-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .palette-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 90px;
+    }
+
+    .palette-header {
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.25rem;
+    }
+
+    .palette-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-navy-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .palette-legend {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.answered { background-color: var(--green-600); }
+    .legend-dot.unanswered { background-color: var(--border-color); }
+    .legend-dot.current { background-color: #3b82f6; }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .palette-grid::-webkit-scrollbar {
+      width: 4px;
+    }
+    .palette-grid::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .palette-btn {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border-color);
+      background-color: #ffffff;
+      color: var(--text-navy-700);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .palette-btn:hover {
+      border-color: #94a3b8;
+    }
+
+    .palette-btn.answered {
+      background-color: var(--green-600);
+      border-color: var(--green-600);
+      color: #ffffff;
+    }
+
+    .palette-btn.current {
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6;
+      border-color: #3b82f6;
+      font-weight: 800;
+    }
+
+    .palette-btn.answered.current {
+      background-color: var(--green-600);
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--green-700);
+    }
+
+    .palette-stats {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+
+    .palette-stats .count-box {
+      text-align: center;
+    }
+
+    .palette-stats .num {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+    }
+
+    .palette-submit-btn {
+      width: 100%;
+    }
+
+    /* ============================================================
+       SUBMISSION CONFIRMATION MODAL
+       ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-dialog {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      max-width: 520px;
+      width: 100%;
+      box-shadow: var(--shadow-modal);
+      padding: 2rem;
+      transform: translateY(10px);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.active .modal-dialog {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-header h3 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+      margin-bottom: 0.35rem;
+    }
+
+    .modal-header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .modal-stat-box {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .modal-stat-box .val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+    }
+
+    .modal-stat-box.answered .val { color: var(--green-600); }
+    .modal-stat-box.unanswered .val { color: var(--amber-600); }
+
+    .modal-stat-box .lbl {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .modal-alert {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.45;
+    }
+
+    .modal-alert.warning {
+      background-color: var(--amber-50);
+      border: 1px solid var(--amber-500);
+      color: var(--amber-600);
+    }
+
+    .modal-alert.ready {
+      background-color: var(--green-50);
+      border: 1px solid var(--green-500);
+      color: var(--green-700);
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.85rem;
+    }
+
+    /* ============================================================
+       PAGE 3 — RESULT SCREEN
+       ============================================================ */
+    .result-wrapper {
+      padding: 3rem 0;
+      min-height: 100vh;
+    }
+
+    .result-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .result-header h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    .email-status-banner {
+      max-width: 900px;
+      margin: 0 auto 2rem auto;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .email-status-banner.sending {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+
+    .email-status-banner.success {
+      background-color: var(--green-50);
+      border-color: var(--green-500);
+      color: var(--green-700);
+    }
+
+    .email-status-banner.error {
+      background-color: var(--red-50);
+      border-color: var(--red-500);
+      color: var(--red-600);
+    }
+
+    .email-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(30, 64, 175, 0.2);
+      border-top-color: #1e40af;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .score-hero-card {
+      max-width: 900px;
+      margin: 0 auto 2.5rem auto;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .score-hero-header {
+      padding: 1.5rem 2rem;
+      background: #fafbfc;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .score-hero-body {
+      padding: 2.5rem 2rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    .score-circle-wrapper {
+      text-align: center;
+    }
+
+    .score-big-display {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text-navy-900);
+      margin-bottom: 0.35rem;
+    }
+
+    .score-total-label {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .status-pill-big {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1.25rem;
+      border-radius: var(--radius-full);
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status-pill-big.passed {
+      background-color: var(--green-100);
+      color: var(--green-700);
+      border: 1px solid var(--green-500);
+    }
+
+    .status-pill-big.failed {
+      background-color: var(--red-100);
+      color: var(--red-600);
+      border: 1px solid var(--red-500);
+    }
+
+    .metrics-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1.15rem;
+    }
+
+    .metric-card .val {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+      line-height: 1.2;
+    }
+
+    .metric-card .lbl {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-top: 0.2rem;
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-navy-900);
+      margin-bottom: 1.25rem;
+    }
+
+    .topics-card {
+      max-width: 900px;
+      margin: 0 auto 2.5rem auto;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topic-row {
+      margin-bottom: 1.5rem;
+    }
+
+    .topic-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .topic-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .topic-name {
+      color: var(--text-navy-900);
+    }
+
+    .topic-score {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+
+    .topic-progress-track {
+      width: 100%;
+      height: 8px;
+      background-color: var(--bg-muted);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .topic-progress-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      background-color: var(--green-600);
+      transition: width 0.6s ease;
+    }
+
+    .review-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .review-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .review-filters {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-navy-700);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      background-color: var(--bg-muted);
+    }
+
+    .filter-btn.active {
+      background-color: var(--text-navy-900);
+      color: #ffffff;
+      border-color: var(--text-navy-900);
+    }
+
+    .review-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .review-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .review-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.25rem;
+    }
+
+    .review-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .review-option {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      font-size: 0.92rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: #ffffff;
+    }
+
+    .review-option.correct {
+      border-color: var(--green-500);
+      background-color: var(--green-50);
+      font-weight: 600;
+    }
+
+    .review-option.user-selected-wrong {
+      border-color: var(--red-500);
+      background-color: var(--red-50);
+      color: var(--red-600);
+    }
+
+    .review-explanation {
+      background-color: #fafbfc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
+      color: var(--text-navy-700);
+    }
+
+    .review-explanation strong {
+      color: var(--text-navy-900);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .result-actions-footer {
+      max-width: 900px;
+      margin: 3rem auto 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .exam-header, .welcome-wrapper, .modal-overlay, .result-actions-footer, .review-controls, .email-status-banner {
+        display: none !important;
+      }
+      .score-hero-card, .topics-card, .review-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid;
+      }
+      .screen {
+        display: none !important;
+      }
+      #screen-result {
+        display: block !important;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .exam-grid-layout {
+        grid-template-columns: 1fr;
+      }
+      .palette-card {
+        position: static;
+        margin-top: 2rem;
+      }
+      .palette-grid {
+        grid-template-columns: repeat(8, 1fr);
+      }
+      .score-hero-body {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .score-circle-wrapper {
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 2rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header-content {
+        height: auto;
+        padding: 0.75rem 0;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .palette-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .metrics-summary-grid {
+        grid-template-columns: 1fr;
+      }
+      .welcome-card {
+        padding: 1.5rem;
+      }
+      .question-card {
+        padding: 1.5rem;
+      }
+      .question-footer {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+      .nav-buttons-left, .nav-buttons-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       PAGE 1 — WELCOME SCREEN
+       ============================================================ -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-wrapper">
+      <div class="welcome-card">
+        <div class="welcome-header">
+          <div class="eyebrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            Official Assessment Portal
+          </div>
+          <h1>Node.js — Week 1 Technical Assessment</h1>
+          <p>Comprehensive technical evaluation covering Node.js architecture, modules, asynchronous file system I/O, npm package lifecycle, and native HTTP servers.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="val">40</div>
+            <div class="lbl">Total Questions</div>
+          </div>
+          <div class="stat-box">
+            <div class="val">90m</div>
+            <div class="lbl">Duration</div>
+          </div>
+          <div class="stat-box">
+            <div class="val">100</div>
+            <div class="lbl">Total Marks</div>
+          </div>
+          <div class="stat-box">
+            <div class="val">60%</div>
+            <div class="lbl">Pass Mark</div>
+          </div>
+        </div>
+
+        <div class="instructions-panel">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Examination Rules & Instructions
+          </h3>
+          <ul class="instructions-list">
+            <li>The assessment contains <strong>40 multiple-choice questions</strong> categorized into 5 syllabus sections.</li>
+            <li>Each correct answer is awarded <strong>2.5 marks</strong>. There is <strong>no negative marking</strong> for wrong or skipped answers.</li>
+            <li>A countdown timer of <strong>90:00</strong> starts as soon as you begin. The exam submits automatically at timeout.</li>
+            <li>You can jump directly to any question using the 40-question navigation palette or the Previous/Next buttons.</li>
+            <li>All questions are compulsory in concept, but submission with unanswered questions is permitted.</li>
+            <li>Upon final submission, your score is calculated immediately and transmitted to the examiner's configured inbox.</li>
+          </ul>
+        </div>
+
+        <div class="form-group">
+          <label for="studentNameInput">Candidate Full Name <span style="color: var(--red-500); font-weight: bold;">*</span></label>
+          <input type="text" id="studentNameInput" placeholder="Enter your full legal name (e.g., Alex Johnson)" autocomplete="name" required>
+          <div id="studentNameError" class="input-error-msg">Please enter your full name before starting the examination.</div>
+        </div>
+
+        <div class="welcome-actions">
+          <button id="btnStartExam" class="btn btn-primary" style="padding: 0.85rem 1.75rem; font-size: 1.05rem;">
+            <span>Start Examination</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 2 — EXAMINATION INTERFACE
+       ============================================================ -->
+  <div id="screen-exam" class="screen">
+    <div class="exam-wrapper">
+      <header class="exam-header">
+        <div class="container">
+          <div class="header-content">
+            <div class="header-left">
+              <span class="exam-title-pill">Node.js — Week 1 Assessment</span>
+              <div class="student-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="displayStudentName">Candidate</span>
+              </div>
+            </div>
+
+            <div class="header-right">
+              <div id="timerCard" class="timer-card" title="Time Remaining">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="timerText">90:00</span>
+              </div>
+              <button id="btnHeaderSubmit" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.88rem;">
+                Submit Exam
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="progress-bar-container" title="Overall Progress">
+          <div id="examProgressBar" class="progress-bar-fill"></div>
+        </div>
+      </header>
+
+      <main class="exam-body">
+        <div class="container">
+          <div class="exam-grid-layout">
+            
+            <section class="question-stage">
+              <div class="question-card">
+                <div class="question-meta">
+                  <div>
+                    <span id="qSectionBadge" class="section-badge">Section 1: Backend and Node.js Fundamentals</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span id="qNumberBadge" class="question-number-badge">Question 1 of 40</span>
+                    <span class="marks-badge">+2.5 Marks</span>
+                  </div>
+                </div>
+
+                <h2 id="qPrompt" class="question-prompt">
+                  Loading question prompt...
+                </h2>
+
+                <div id="qOptionsList" class="options-list">
+                  <!-- Dynamic Options -->
+                </div>
+
+                <div class="question-footer">
+                  <div class="nav-buttons-left">
+                    <button id="btnPrevQ" class="btn btn-secondary">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                      Previous
+                    </button>
+                    <button id="btnClearSelection" class="btn btn-secondary" style="font-size: 0.85rem; color: var(--text-muted);">
+                      Clear Selection
+                    </button>
+                  </div>
+                  <div class="nav-buttons-right">
+                    <button id="btnNextQ" class="btn btn-primary">
+                      Next
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="palette-sidebar">
+              <div class="palette-card">
+                <div class="palette-header">
+                  <h3 class="palette-title">Question Palette</h3>
+                  <div class="palette-legend">
+                    <div class="legend-item">
+                      <span class="legend-dot answered"></span>
+                      <span>Answered</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-dot unanswered"></span>
+                      <span>Unanswered</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-dot current"></span>
+                      <span>Active</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="paletteGrid" class="palette-grid">
+                  <!-- 40 grid buttons generated dynamically -->
+                </div>
+
+                <div class="palette-stats">
+                  <div class="count-box">
+                    <div id="statAnsweredCount" class="num" style="color: var(--green-600);">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Answered</div>
+                  </div>
+                  <div style="height: 24px; width: 1px; background: var(--border-color);"></div>
+                  <div class="count-box">
+                    <div id="statUnansweredCount" class="num" style="color: var(--text-muted);">40</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Unanswered</div>
+                  </div>
+                </div>
+
+                <button id="btnSidebarSubmit" class="btn btn-success palette-submit-btn">
+                  Submit Examination
+                </button>
+              </div>
+            </aside>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUBMISSION CONFIRMATION MODAL
+       ============================================================ -->
+  <div id="submissionModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Confirm Exam Submission</h3>
+        <p>Please review your response statistics before finalizing.</p>
+      </div>
+
+      <div class="modal-stats">
+        <div class="modal-stat-box answered">
+          <div id="modalAnsweredCount" class="val">0</div>
+          <div class="lbl">Questions Answered</div>
+        </div>
+        <div class="modal-stat-box unanswered">
+          <div id="modalUnansweredCount" class="val">40</div>
+          <div class="lbl">Unanswered Questions</div>
+        </div>
+      </div>
+
+      <div id="modalWarningBox" class="modal-alert warning">
+        You have unanswered questions. You can still return to complete them or confirm submission now.
+      </div>
+
+      <div class="modal-actions">
+        <button id="btnModalCancel" class="btn btn-secondary">
+          Return to Exam
+        </button>
+        <button id="btnModalConfirm" class="btn btn-success">
+          Confirm & Submit Final Score
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 3 — RESULT SCREEN
+       ============================================================ -->
+  <div id="screen-result" class="screen">
+    <div class="container result-wrapper">
+      
+      <div class="result-header">
+        <div class="badge badge-primary" style="margin-bottom: 0.75rem;">Official Result Transcript</div>
+        <h1>Performance & Evaluation Report</h1>
+        <p>Node.js — Week 1 Technical Assessment • Instant Evaluation</p>
+      </div>
+
+      <!-- Realtime EmailJS Notification Status -->
+      <div id="emailStatusBanner" class="email-status-banner sending">
+        <div class="email-banner-left">
+          <div id="emailSpinner" class="spinner"></div>
+          <span id="emailStatusText">Dispatching results to the examiner's email...</span>
+        </div>
+        <button id="btnRetryEmail" class="btn btn-secondary" style="display: none; padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+          Retry Sending Email
+        </button>
+      </div>
+
+      <!-- Hero Score Card -->
+      <div class="score-hero-card">
+        <div class="score-hero-header">
+          <div>
+            <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">CANDIDATE NAME</span>
+            <h3 id="resStudentName" style="font-size: 1.25rem;">Candidate Name</h3>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">SUBMISSION TIMESTAMP</span>
+            <div id="resTimestamp" style="font-size: 0.95rem; font-weight: 600; color: var(--text-navy-800);">Nov 7, 2026 12:00 PM</div>
+          </div>
+        </div>
+
+        <div class="score-hero-body">
+          <div class="score-circle-wrapper">
+            <div id="resTotalScore" class="score-big-display">0.0</div>
+            <div class="score-total-label">out of 100 Marks</div>
+            <div id="resStatusBadge" class="status-pill-big passed">PASSED</div>
+          </div>
+
+          <div class="metrics-summary-grid">
+            <div class="metric-card">
+              <div id="resPercentage" class="val" style="color: #2563eb;">0.0%</div>
+              <div class="lbl">Percentage (Pass: 60%)</div>
+            </div>
+            <div class="metric-card">
+              <div id="resCorrectCount" class="val" style="color: var(--green-600);">0</div>
+              <div class="lbl">Correct Answers (×2.5)</div>
+            </div>
+            <div class="metric-card">
+              <div id="resIncorrectCount" class="val" style="color: var(--red-600);">0</div>
+              <div class="lbl">Incorrect Answers</div>
+            </div>
+            <div class="metric-card">
+              <div id="resUnansweredCount" class="val" style="color: var(--amber-600);">0</div>
+              <div class="lbl">Unanswered Questions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Topic-wise Breakdown Card -->
+      <div class="topics-card">
+        <h3 class="section-title">Topic-wise Performance Analysis</h3>
+        <div id="topicsBreakdownContainer">
+          <!-- Populated dynamically with 5 sections -->
+        </div>
+      </div>
+
+      <!-- Question Review Section -->
+      <div class="review-wrapper">
+        <div class="review-controls">
+          <h3 class="section-title" style="margin-bottom: 0;">Detailed Question Review</h3>
+          <div class="review-filters">
+            <button class="filter-btn active" data-filter="all">All (40)</button>
+            <button class="filter-btn" data-filter="correct">Correct (<span id="filterCorrectCount">0</span>)</button>
+            <button class="filter-btn" data-filter="incorrect">Incorrect (<span id="filterIncorrectCount">0</span>)</button>
+            <button class="filter-btn" data-filter="unanswered">Unanswered (<span id="filterUnansweredCount">0</span>)</button>
+          </div>
+        </div>
+
+        <div id="reviewList" class="review-list">
+          <!-- Populated dynamically with 40 questions -->
+        </div>
+      </div>
+
+      <div class="result-actions-footer">
+        <button id="btnPrintResult" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save Transcript PDF
+        </button>
+
+        <button id="btnRetakeExam" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Start New Assessment
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       APPLICATION LOGIC & DATA
+       ============================================================ -->
+  <script>
+    /**
+     * ================================================================
+     * EMAILJS CONFIGURATION
+     * Public Key: mUoANnPLdaqJ-6Frf
+     * Service ID: service_8xdq3zc
+     * Template ID: template_as501fp
+     *
+     * Note: The examiner's recipient email is pre-configured securely
+     * inside the EmailJS template dashboard, preventing browser exposure.
+     * ================================================================
+     */
+    const EMAILJS_CONFIG = {
+      publicKey: "mUoANnPLdaqJ-6Frf",
+      serviceId: "service_8xdq3zc",
+      templateId: "template_as501fp"
+    };
+
+    // Initialize EmailJS with Public Key
+    (function initEmailJS() {
+      if (typeof emailjs !== 'undefined') {
+        try {
+          emailjs.init({
+            publicKey: EMAILJS_CONFIG.publicKey
+          });
+          console.log("EmailJS SDK initialized successfully with public key.");
+        } catch (err) {
+          console.error("Failed to initialize EmailJS:", err);
+        }
+      } else {
+        console.warn("EmailJS SDK script tag not detected or blocked by network.");
+      }
+    })();
+
+    /**
+     * ================================================================
+     * 40 TECHNICAL ASSESSMENT QUESTIONS BANK
+     * 5 Curriculum Sections:
+     * 1. Backend and Node.js Fundamentals (Q1–Q8)
+     * 2. Node.js Modules and Built-in Modules (Q9–Q15)
+     * 3. File System and Asynchronous Programming (Q16–Q23)
+     * 4. npm and Environment Configuration (Q24–Q30)
+     * 5. HTTP and Node.js HTTP Server (Q31–Q40)
+     * ================================================================
+     */
+    const SECTIONS = [
+      { id: 1, name: "Backend and Node.js Fundamentals", questionRange: [1, 8], count: 8 },
+      { id: 2, name: "Node.js Modules and Built-in Modules", questionRange: [9, 15], count: 7 },
+      { id: 3, name: "File System and Asynchronous Programming", questionRange: [16, 23], count: 8 },
+      { id: 4, name: "npm and Environment Configuration", questionRange: [24, 30], count: 7 },
+      { id: 5, name: "HTTP and Node.js HTTP Server", questionRange: [31, 40], count: 10 }
+    ];
+
+    const QUESTIONS = [
+      // ---------------------------------------------------------------
+      // Section 1: Backend and Node.js Fundamentals (Q1–Q8)
+      // ---------------------------------------------------------------
+      {
+        id: 1,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "What is Node.js primarily defined as?",
+        options: [
+          "A client-side JavaScript UI library designed for single-page web applications",
+          "An open-source, cross-platform JavaScript runtime environment built on Google Chrome's V8 engine",
+          "A relational database management engine optimized for JSON document indexing",
+          "A native browser compiler used to transpile modern JavaScript into binary web assemblies"
+        ],
+        correctAnswer: 1,
+        explanation: "Node.js is an open-source, cross-platform JavaScript runtime environment built on Chrome's V8 JavaScript engine that executes JavaScript code outside of a web browser."
+      },
+      {
+        id: 2,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "Which core architectural model enables Node.js to handle thousands of concurrent client connections with high throughput?",
+        options: [
+          "Multi-threaded blocking I/O with operating system process pools",
+          "Single-threaded event loop architecture utilizing non-blocking, asynchronous I/O",
+          "Synchronous multi-core execution pipeline with thread-per-request allocation",
+          "Pre-emptive kernel scheduling where each incoming HTTP request spawns an OS thread"
+        ],
+        correctAnswer: 1,
+        explanation: "Node.js uses a single-threaded event loop architecture paired with non-blocking I/O operations, allowing it to handle substantial concurrency without the overhead of thread creation and context switching."
+      },
+      {
+        id: 3,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "Which underlying multi-platform C library provides Node.js with its event loop, thread pool, and cross-platform asynchronous I/O abstraction?",
+        options: [
+          "WebKit",
+          "libuv",
+          "Babel Core",
+          "OpenSSL Crypto"
+        ],
+        correctAnswer: 1,
+        explanation: "libuv is the multi-platform C library originally designed for Node.js that powers the event loop, worker thread pool, asynchronous DNS resolution, and file system abstractions."
+      },
+      {
+        id: 4,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "How does Google's V8 engine execute JavaScript source code inside the Node.js runtime?",
+        options: [
+          "It interprets the code line-by-line without compilation",
+          "It transpiles JavaScript into C++ source files which are compiled via GCC",
+          "It compiles JavaScript directly into native machine code using Just-In-Time (JIT) compilation",
+          "It compiles JavaScript into bytecode that runs on the Java Virtual Machine (JVM)"
+        ],
+        correctAnswer: 2,
+        explanation: "Google Chrome's V8 engine compiles JavaScript directly into optimized native machine code prior to execution using sophisticated Just-In-Time (JIT) compilation."
+      },
+      {
+        id: 5,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "What is the default worker thread pool size maintained by libuv in a standard Node.js instance?",
+        options: [
+          "1 thread",
+          "2 threads",
+          "4 threads",
+          "16 threads"
+        ],
+        correctAnswer: 2,
+        explanation: "By default, libuv allocates a thread pool of 4 worker threads for handling expensive asynchronous tasks such as file system I/O, crypto, and zlib (configurable via UV_THREADPOOL_SIZE)."
+      },
+      {
+        id: 6,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "What happens when blocking (synchronous) code is executed on the main Node.js thread?",
+        options: [
+          "Node.js immediately spawns a background thread to execute it without pausing the main thread",
+          "Execution of additional JavaScript is halted, pausing the event loop until the operation finishes",
+          "The browser engine handles subsequent requests in parallel",
+          "Node.js automatically converts the synchronous function into an asynchronous Promise"
+        ],
+        correctAnswer: 1,
+        explanation: "Because Node.js executes JavaScript on a single main thread, any synchronous blocking operation holds the thread and prevents the event loop from servicing any other events, timers, or network requests."
+      },
+      {
+        id: 7,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "Which top-level global identifier in Node.js corresponds to the 'window' object found in web browsers?",
+        options: [
+          "document",
+          "global",
+          "root",
+          "process.window"
+        ],
+        correctAnswer: 1,
+        explanation: "In Node.js, the top-level global object is 'global' (standardized across modern JavaScript environments as 'globalThis'), whereas in web browser environments it is 'window'."
+      },
+      {
+        id: 8,
+        sectionId: 1,
+        sectionName: "Backend and Node.js Fundamentals",
+        question: "What is the primary function of the Call Stack in the Node.js runtime environment?",
+        options: [
+          "To buffer incoming binary network packets before HTTP routing",
+          "To record and track active function execution frames using a Last-In, First-Out (LIFO) structure",
+          "To store unresolved database query strings awaiting response",
+          "To prioritize background thread operations from the libuv pool"
+        ],
+        correctAnswer: 1,
+        explanation: "The Call Stack is a LIFO (Last-In, First-Out) data structure that tracks function execution contexts. When a function is invoked, its frame is pushed to the stack; when it finishes, it is popped off."
+      },
+
+      // ---------------------------------------------------------------
+      // Section 2: Node.js Modules and Built-in Modules (Q9–Q15)
+      // ---------------------------------------------------------------
+      {
+        id: 9,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "Which module format is the native, synchronous module system historically standard to Node.js using require() and module.exports?",
+        options: [
+          "AMD (Asynchronous Module Definition)",
+          "CommonJS",
+          "UMD (Universal Module Definition)",
+          "SystemJS"
+        ],
+        correctAnswer: 1,
+        explanation: "CommonJS is the native synchronous module specification adopted by Node.js, utilizing require() for loading modules and module.exports for exposing public APIs."
+      },
+      {
+        id: 10,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "Which built-in Node.js module provides cross-platform utilities for resolving, parsing, and normalizing file paths?",
+        options: [
+          "os",
+          "fs",
+          "path",
+          "url"
+        ],
+        correctAnswer: 2,
+        explanation: "The 'path' module provides essential functions such as path.join(), path.resolve(), and path.extname() to safely manipulate file and directory paths across POSIX and Windows operating systems."
+      },
+      {
+        id: 11,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "Before executing any module code, Node.js wraps it in an invisible function. Which argument list accurately represents this wrapper?",
+        options: [
+          "(window, document, console, fetch, process)",
+          "(exports, require, module, __filename, __dirname)",
+          "(app, req, res, next, config)",
+          "(import, export, default, from, as)"
+        ],
+        correctAnswer: 1,
+        explanation: "Node.js wraps every module in: (function(exports, require, module, __filename, __dirname) { /* module code */ });, scoping local variables to the module rather than polluting the global namespace."
+      },
+      {
+        id: 12,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "What does path.join('users', 'admin', '..', 'reports', 'file.txt') evaluate to on a POSIX/Unix environment?",
+        options: [
+          "users/admin/reports/file.txt",
+          "users/reports/file.txt",
+          "admin/reports/file.txt",
+          "users/admin/../reports/file.txt"
+        ],
+        correctAnswer: 1,
+        explanation: "path.join() normalizes relative path segments. Resolving '..' moves up from 'admin' into 'users', yielding the normalized path 'users/reports/file.txt'."
+      },
+      {
+        id: 13,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "Which method from the built-in 'os' module returns an array of objects detailing each logical CPU core and architecture?",
+        options: [
+          "os.cpuInfo()",
+          "os.cpus()",
+          "os.cores()",
+          "os.processors()"
+        ],
+        correctAnswer: 1,
+        explanation: "os.cpus() returns an array containing objects describing each CPU core, including model, speed in MHz, and execution times (user, nice, sys, idle, irq)."
+      },
+      {
+        id: 14,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "What happens if a developer directly reassigns the 'exports' variable in a module (e.g. exports = function() {})?",
+        options: [
+          "The exported function will be exported correctly as default",
+          "The reassignment breaks the reference link between exports and module.exports, so the function will NOT be exported",
+          "Node.js throws a fatal compile-time SyntaxError",
+          "It overrides the global module registry across the entire application"
+        ],
+        correctAnswer: 1,
+        explanation: "'exports' is simply a local reference pointing to the object 'module.exports'. Reassigning 'exports' directly severs that reference, leaving 'module.exports' intact and unmodified."
+      },
+      {
+        id: 15,
+        sectionId: 2,
+        sectionName: "Node.js Modules and Built-in Modules",
+        question: "Which built-in module provides the EventEmitter class that underpins Node.js's event-driven architecture?",
+        options: [
+          "stream",
+          "events",
+          "dispatcher",
+          "listener"
+        ],
+        correctAnswer: 1,
+        explanation: "The 'events' module provides the EventEmitter class. Nearly all objects in Node.js that emit events (like HTTP servers, streams, and sockets) are instances or extensions of EventEmitter."
+      },
+
+      // ---------------------------------------------------------------
+      // Section 3: File System and Asynchronous Programming (Q16–Q23)
+      // ---------------------------------------------------------------
+      {
+        id: 16,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "What standard argument pattern do traditional asynchronous Node.js callback functions follow?",
+        options: [
+          "(data, status, error)",
+          "(error, result)",
+          "(success, payload)",
+          "(resolve, reject)"
+        ],
+        correctAnswer: 1,
+        explanation: "Node.js adheres to the 'error-first callback' convention (also known as the Node-style callback): the first parameter is reserved for an Error object (null if successful), followed by result data."
+      },
+      {
+        id: 17,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "When invoking fs.readFile('notes.txt', (err, data) => {}) without specifying an encoding, what data type is received by the 'data' parameter?",
+        options: [
+          "A UTF-8 String",
+          "A Buffer instance containing raw binary data",
+          "A JSON Array of character bytes",
+          "A Readable File Stream"
+        ],
+        correctAnswer: 1,
+        explanation: "When no encoding (e.g., 'utf-8') is specified in fs.readFile(), Node.js returns the raw file contents as a Buffer object."
+      },
+      {
+        id: 18,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "Which method in the built-in 'fs' module is used to asynchronously delete/remove a file from the file system?",
+        options: [
+          "fs.removeFile()",
+          "fs.delete()",
+          "fs.unlink()",
+          "fs.purge()"
+        ],
+        correctAnswer: 2,
+        explanation: "fs.unlink() (or fs.promises.unlink()) is the standard POSIX-derived method in Node.js used to asynchronously delete a file or symbolic link."
+      },
+      {
+        id: 19,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "Why is the use of synchronous file operations like fs.readFileSync() considered an anti-pattern in high-concurrency production servers?",
+        options: [
+          "They permanently corrupt file permissions on disk",
+          "They block the single-threaded event loop, preventing all concurrent network requests from being processed until disk I/O completes",
+          "They cause memory leaks by disabling garbage collection during the read",
+          "They cannot read files larger than 1 kilobyte"
+        ],
+        correctAnswer: 1,
+        explanation: "Synchronous file operations block the single JavaScript execution thread. While the server waits for the physical disk read, all incoming HTTP connections and timer events are completely stalled."
+      },
+      {
+        id: 20,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "Which 'fs' method asynchronously appends specified data to a file, automatically creating the file if it does not already exist?",
+        options: [
+          "fs.appendFile()",
+          "fs.insertEnd()",
+          "fs.concatFile()",
+          "fs.pushFile()"
+        ],
+        correctAnswer: 0,
+        explanation: "fs.appendFile(path, data[, options], callback) asynchronously appends data to a file, creating the target file if it does not already exist."
+      },
+      {
+        id: 21,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "How can modern Node.js developers utilize Promise-based file system operations to write clean async/await syntax?",
+        options: [
+          "By importing require('fs/async')",
+          "By importing require('fs/promises') or require('fs').promises",
+          "By wrapping all fs callbacks inside JSON.parse()",
+          "Native Promises are not supported by the Node.js file system API"
+        ],
+        correctAnswer: 1,
+        explanation: "Node.js provides a native Promise-based API for the file system via require('fs/promises') or require('fs').promises, enabling clean async/await syntax."
+      },
+      {
+        id: 22,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "In what order does process.nextTick() execute relative to standard event loop phases like setTimeout timers?",
+        options: [
+          "After all timers, I/O callbacks, and check phases have completed",
+          "Immediately after the currently running operation completes, before the event loop advances to the next phase",
+          "Only when the operating system kernel is idle",
+          "In parallel on a separate libuv worker thread"
+        ],
+        correctAnswer: 1,
+        explanation: "process.nextTick() queues a callback onto the microtask/nextTick queue, which is completely emptied immediately following the current execution frame before advancing the event loop to any other phase."
+      },
+      {
+        id: 23,
+        sectionId: 3,
+        sectionName: "File System and Asynchronous Programming",
+        question: "Which timing function is specifically designed to execute a callback in the 'Check' phase of the event loop, immediately following the I/O poll phase?",
+        options: [
+          "setTimeout(fn, 0)",
+          "setImmediate()",
+          "process.yield()",
+          "setInterval()"
+        ],
+        correctAnswer: 1,
+        explanation: "setImmediate() schedules a callback to run during the Check phase of the event loop, which executes right after the Poll phase handles pending I/O events."
+      },
+
+      // ---------------------------------------------------------------
+      // Section 4: npm and Environment Configuration (Q24–Q30)
+      // ---------------------------------------------------------------
+      {
+        id: 24,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "Which CLI command initializes a new Node.js project and generates a default package.json without interactive terminal prompts?",
+        options: [
+          "npm start --all",
+          "npm init -y",
+          "npm create-node",
+          "node --init-package"
+        ],
+        correctAnswer: 1,
+        explanation: "'npm init -y' (or 'npm init --yes') automatically populates and writes a valid package.json using standard sensible default configuration values without prompting for user input."
+      },
+      {
+        id: 25,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "In package.json, what is the crucial difference between 'dependencies' and 'devDependencies'?",
+        options: [
+          "dependencies are hosted on GitHub while devDependencies are hosted on npmjs.org",
+          "dependencies are required to run the application in production; devDependencies are only needed for local development, building, and testing",
+          "devDependencies are automatically bundled into production Docker containers",
+          "dependencies only accept JavaScript modules while devDependencies only accept TypeScript modules"
+        ],
+        correctAnswer: 1,
+        explanation: "'dependencies' are packages required by your application in production (e.g., Express, pg, dotenv), whereas 'devDependencies' are tools strictly needed during development (e.g., nodemon, Jest, ESLint)."
+      },
+      {
+        id: 26,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "In semantic versioning (semver), what does the caret symbol (^) signify in a dependency version specified as ^3.5.2?",
+        options: [
+          "Permit automatic updates to major version 4.0.0",
+          "Permit compatible updates to minor and patch releases without changing the major version (>= 3.5.2 and < 4.0.0)",
+          "Permit only patch updates (e.g., 3.5.3)",
+          "Pin the dependency strictly to version 3.5.2 with zero updates allowed"
+        ],
+        correctAnswer: 1,
+        explanation: "The caret symbol (^) allows npm to install minor and patch updates as long as the major version digit does not change, assuring backwards-compatible updates."
+      },
+      {
+        id: 27,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "What is the primary role of the package-lock.json file in a professional Node.js codebase?",
+        options: [
+          "To securely encrypt environment passwords and secrets before deployment",
+          "To lock and record the exact dependency tree and resolved package versions, guaranteeing reproducible builds across environments",
+          "To prevent unauthorized developers from modifying the source code files",
+          "To configure SSL certificates and HTTPS handshake options"
+        ],
+        correctAnswer: 1,
+        explanation: "package-lock.json records the exact versions, integrity hashes, and dependency trees resolved during npm install, ensuring completely deterministic and reproducible installations across developer machines and production servers."
+      },
+      {
+        id: 28,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "After calling require('dotenv').config(), how do you access an environment variable named DB_PORT in your Node.js application?",
+        options: [
+          "env.get('DB_PORT')",
+          "process.env.DB_PORT",
+          "global.env.DB_PORT",
+          "window.process.DB_PORT"
+        ],
+        correctAnswer: 1,
+        explanation: "The dotenv package reads key-value pairs from the .env file and assigns them to the built-in process.env global object, accessible via process.env.KEY_NAME."
+      },
+      {
+        id: 29,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "Why should both .env and node_modules/ always be included in the .gitignore file?",
+        options: [
+          "Git crashes if files contain underscores or leading periods",
+          ".env holds sensitive production secrets/passwords and node_modules is heavy and easily restored via npm install",
+          "npm prohibits starting the server if node_modules is tracked in Git history",
+          "Cloud deployment providers automatically delete repositories containing local modules"
+        ],
+        correctAnswer: 1,
+        explanation: "Committing .env can expose critical API keys, database credentials, and secrets publicly. Committing node_modules causes repository bloat because all dependencies can be cleanly reproduced using 'npm install' via package-lock.json."
+      },
+      {
+        id: 30,
+        sectionId: 4,
+        sectionName: "npm and Environment Configuration",
+        question: "Which npm install flag adds a library specifically to the devDependencies section of package.json?",
+        options: [
+          "--save-prod",
+          "--save-dev (or -D)",
+          "--save-global",
+          "--save-optional"
+        ],
+        correctAnswer: 1,
+        explanation: "Passing '--save-dev' or the shorthand '-D' to 'npm install <package>' installs the module and records it under 'devDependencies' in package.json."
+      },
+
+      // ---------------------------------------------------------------
+      // Section 5: HTTP and Node.js HTTP Server (Q31–Q40)
+      // ---------------------------------------------------------------
+      {
+        id: 31,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which method from the built-in 'http' module instantiates an HTTP server instance?",
+        options: [
+          "http.startServer()",
+          "http.createServer()",
+          "http.newServer()",
+          "http.listenServer()"
+        ],
+        correctAnswer: 1,
+        explanation: "http.createServer([options][, requestListener]) is the native method used to construct and return a new instance of http.Server."
+      },
+      {
+        id: 32,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "In the request listener callback http.createServer((req, res) => {}), what architectural constructs do 'req' and 'res' represent?",
+        options: [
+          "'req' is an incoming Readable Stream (http.IncomingMessage) and 'res' is an outgoing Writable Stream (http.ServerResponse)",
+          "'req' is a static JSON object and 'res' is an HTML string buffer",
+          "Both 'req' and 'res' are synchronous array buffers created by V8",
+          "'req' represents the client MAC address and 'res' represents the DNS routing table"
+        ],
+        correctAnswer: 0,
+        explanation: "In Node.js HTTP servers, the 'req' object is an instance of http.IncomingMessage (a Readable stream), while 'res' is an instance of http.ServerResponse (a Writable stream)."
+      },
+      {
+        id: 33,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which property on the incoming request object ('req') holds the request path and query string (e.g. '/api/users?sort=asc')?",
+        options: [
+          "req.path",
+          "req.url",
+          "req.route",
+          "req.uri"
+        ],
+        correctAnswer: 1,
+        explanation: "In Node's native 'http' module, 'req.url' returns the full request URL string following the domain/port, including the path and any search query parameters."
+      },
+      {
+        id: 34,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "What is the critical purpose of invoking res.end() inside an HTTP request handler?",
+        options: [
+          "It forcibly crashes the Node.js server to prevent memory leaks",
+          "It signals to the server and client that all headers and body content have been transmitted, finalizing the HTTP response",
+          "It clears the browser cache and session cookies",
+          "It restarts the libuv event loop timer"
+        ],
+        correctAnswer: 1,
+        explanation: "res.end() signals to the underlying stream that no more data will be written to the response. Without calling res.end(), the client connection will hang indefinitely waiting for completion."
+      },
+      {
+        id: 35,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which method on the response object allows setting the HTTP status code and response headers in a single call?",
+        options: [
+          "res.sendHeaders(200, { 'Content-Type': 'application/json' })",
+          "res.writeHead(200, { 'Content-Type': 'application/json' })",
+          "res.headerWrite(200, 'application/json')",
+          "res.setStatusAndHeaders(200, { ... })"
+        ],
+        correctAnswer: 1,
+        explanation: "res.writeHead(statusCode[, statusMessage][, headers]) sends the HTTP status code and headers to the client in a single call before writing the response body."
+      },
+      {
+        id: 36,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which standard HTTP status code should be returned when a requested route or endpoint cannot be found on the server?",
+        options: [
+          "200 OK",
+          "301 Moved Permanently",
+          "404 Not Found",
+          "500 Internal Server Error"
+        ],
+        correctAnswer: 2,
+        explanation: "HTTP 404 Not Found is the standard client error response code indicating that the server cannot locate the requested URI representation."
+      },
+      {
+        id: 37,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "How is an incoming JSON POST request payload parsed in a pure, native Node.js HTTP server without external middleware?",
+        options: [
+          "By accessing req.body directly upon arrival",
+          "By listening to 'data' stream events to accumulate byte chunks, then listening to the 'end' event to concatenate and JSON.parse() the complete buffer",
+          "By invoking req.getPayloadSync()",
+          "Native Node.js HTTP servers do not support reading POST request bodies"
+        ],
+        correctAnswer: 1,
+        explanation: "Because req is a Readable stream, chunked request payloads arrive over time. Developers collect chunks via req.on('data', chunk => buffer.push(chunk)) and process the combined buffer upon req.on('end', () => ...)."
+      },
+      {
+        id: 38,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which HTTP method is semantically intended for sending data to the server to create a new resource?",
+        options: [
+          "GET",
+          "POST",
+          "HEAD",
+          "OPTIONS"
+        ],
+        correctAnswer: 1,
+        explanation: "The HTTP POST method submits an entity to the specified resource, frequently causing a change in state or the creation of a new resource (conventionally returning status 201 Created)."
+      },
+      {
+        id: 39,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "Which method starts the HTTP server listening for incoming connections on a designated TCP port?",
+        options: [
+          "server.bind(3000)",
+          "server.listen(3000, callback)",
+          "server.start(3000)",
+          "server.open(3000)"
+        ],
+        correctAnswer: 1,
+        explanation: "server.listen(port[, host][, callback]) binds the HTTP server to the specified TCP port and IP interface, beginning connection ingestion."
+      },
+      {
+        id: 40,
+        sectionId: 5,
+        sectionName: "HTTP and Node.js HTTP Server",
+        question: "What HTTP header must be included in the server response to instruct the client that the transmitted payload is formatted as JSON?",
+        options: [
+          "'Accept': 'text/plain'",
+          "'Content-Type': 'application/json'",
+          "'Payload-Format': 'json/object'",
+          "'Type': 'application/javascript'"
+        ],
+        correctAnswer: 1,
+        explanation: "The 'Content-Type: application/json' header specifies the MIME type of the response payload, enabling client browsers and HTTP libraries to parse the response as JSON."
+      }
+    ];
+
+    /**
+     * ================================================================
+     * APPLICATION STATE
+     * ================================================================
+     */
+    const STATE = {
+      studentName: "",
+      currentQuestionIndex: 0,
+      userAnswers: {}, // questionId -> optionIndex (0-3)
+      timerSeconds: 90 * 60, // 90 minutes
+      timerInterval: null,
+      isSubmitted: false,
+      submissionTime: null,
+      evaluatedResults: null
+    };
+
+    /**
+     * ================================================================
+     * DOM ELEMENTS
+     * ================================================================
+     */
+    const screens = {
+      welcome: document.getElementById('screen-welcome'),
+      exam: document.getElementById('screen-exam'),
+      result: document.getElementById('screen-result')
+    };
+
+    const dom = {
+      // Welcome
+      studentNameInput: document.getElementById('studentNameInput'),
+      studentNameError: document.getElementById('studentNameError'),
+      btnStartExam: document.getElementById('btnStartExam'),
+
+      // Header
+      displayStudentName: document.getElementById('displayStudentName'),
+      timerCard: document.getElementById('timerCard'),
+      timerText: document.getElementById('timerText'),
+      examProgressBar: document.getElementById('examProgressBar'),
+      btnHeaderSubmit: document.getElementById('btnHeaderSubmit'),
+
+      // Question Stage
+      qSectionBadge: document.getElementById('qSectionBadge'),
+      qNumberBadge: document.getElementById('qNumberBadge'),
+      qPrompt: document.getElementById('qPrompt'),
+      qOptionsList: document.getElementById('qOptionsList'),
+      btnPrevQ: document.getElementById('btnPrevQ'),
+      btnNextQ: document.getElementById('btnNextQ'),
+      btnClearSelection: document.getElementById('btnClearSelection'),
+
+      // Palette
+      paletteGrid: document.getElementById('paletteGrid'),
+      statAnsweredCount: document.getElementById('statAnsweredCount'),
+      statUnansweredCount: document.getElementById('statUnansweredCount'),
+      btnSidebarSubmit: document.getElementById('btnSidebarSubmit'),
+
+      // Confirmation Modal
+      submissionModal: document.getElementById('submissionModal'),
+      modalAnsweredCount: document.getElementById('modalAnsweredCount'),
+      modalUnansweredCount: document.getElementById('modalUnansweredCount'),
+      modalWarningBox: document.getElementById('modalWarningBox'),
+      btnModalCancel: document.getElementById('btnModalCancel'),
+      btnModalConfirm: document.getElementById('btnModalConfirm'),
+
+      // Result Screen
+      resStudentName: document.getElementById('resStudentName'),
+      resTimestamp: document.getElementById('resTimestamp'),
+      resTotalScore: document.getElementById('resTotalScore'),
+      resStatusBadge: document.getElementById('resStatusBadge'),
+      resPercentage: document.getElementById('resPercentage'),
+      resCorrectCount: document.getElementById('resCorrectCount'),
+      resIncorrectCount: document.getElementById('resIncorrectCount'),
+      resUnansweredCount: document.getElementById('resUnansweredCount'),
+      topicsBreakdownContainer: document.getElementById('topicsBreakdownContainer'),
+      reviewList: document.getElementById('reviewList'),
+      filterCorrectCount: document.getElementById('filterCorrectCount'),
+      filterIncorrectCount: document.getElementById('filterIncorrectCount'),
+      filterUnansweredCount: document.getElementById('filterUnansweredCount'),
+      btnPrintResult: document.getElementById('btnPrintResult'),
+      btnRetakeExam: document.getElementById('btnRetakeExam'),
+
+      // Email Banner
+      emailStatusBanner: document.getElementById('emailStatusBanner'),
+      emailSpinner: document.getElementById('emailSpinner'),
+      emailStatusText: document.getElementById('emailStatusText'),
+      btnRetryEmail: document.getElementById('btnRetryEmail')
+    };
+
+    /**
+     * ================================================================
+     * SCREEN NAVIGATION
+     * ================================================================
+     */
+    function showScreen(screenKey) {
+      Object.keys(screens).forEach(key => {
+        if (key === screenKey) {
+          screens[key].classList.add('active');
+        } else {
+          screens[key].classList.remove('active');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * ================================================================
+     * COUNTDOWN TIMER (90 MINUTES)
+     * ================================================================
+     */
+    function startTimer() {
+      if (STATE.timerInterval) clearInterval(STATE.timerInterval);
+
+      updateTimerDisplay();
+
+      STATE.timerInterval = setInterval(() => {
+        if (STATE.timerSeconds > 0) {
+          STATE.timerSeconds--;
+          updateTimerDisplay();
+
+          if (STATE.timerSeconds <= 600) {
+            dom.timerCard.classList.add('warning');
+          }
+        } else {
+          clearInterval(STATE.timerInterval);
+          autoSubmitOnTimeout();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(STATE.timerSeconds / 60);
+      const seconds = STATE.timerSeconds % 60;
+      const formatted = String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
+      dom.timerText.textContent = formatted;
+    }
+
+    function autoSubmitOnTimeout() {
+      if (STATE.isSubmitted) return;
+      alert("Time has reached 90:00. Your examination will now submit automatically.");
+      finalizeExamSubmission();
+    }
+
+    /**
+     * ================================================================
+     * QUESTION RENDERING & NAVIGATION
+     * ================================================================
+     */
+    function initExamRuntime() {
+      buildPaletteGrid();
+      renderQuestion(STATE.currentQuestionIndex);
+      startTimer();
+    }
+
+    function buildPaletteGrid() {
+      dom.paletteGrid.innerHTML = "";
+      QUESTIONS.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'palette-btn';
+        btn.id = 'palette-btn-' + idx;
+        btn.textContent = idx + 1;
+        btn.title = 'Question ' + (idx + 1) + ' (' + q.sectionName + ')';
+
+        btn.addEventListener('click', () => {
+          navigateToQuestion(idx);
+        });
+
+        dom.paletteGrid.appendChild(btn);
+      });
+      updatePaletteState();
+    }
+
+    function renderQuestion(index) {
+      STATE.currentQuestionIndex = index;
+      const q = QUESTIONS[index];
+
+      dom.qSectionBadge.textContent = "Section " + q.sectionId + ": " + q.sectionName;
+      dom.qNumberBadge.textContent = "Question " + (index + 1) + " of " + QUESTIONS.length;
+      dom.qPrompt.textContent = q.question;
+
+      dom.qOptionsList.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+      const selectedOption = STATE.userAnswers[q.id];
+
+      q.options.forEach((optText, optIdx) => {
+        const card = document.createElement('div');
+        card.className = 'option-card' + (selectedOption === optIdx ? ' selected' : '');
+        card.setAttribute('role', 'radio');
+        card.setAttribute('aria-checked', selectedOption === optIdx ? 'true' : 'false');
+        card.tabIndex = 0;
+
+        card.innerHTML = 
+          '<div class="option-letter">' + letters[optIdx] + '</div>' +
+          '<div class="option-text">' + optText + '</div>';
+
+        card.addEventListener('click', () => {
+          selectAnswer(q.id, optIdx);
+        });
+
+        card.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            selectAnswer(q.id, optIdx);
+          }
+        });
+
+        dom.qOptionsList.appendChild(card);
+      });
+
+      dom.btnPrevQ.disabled = (index === 0);
+      if (index === QUESTIONS.length - 1) {
+        dom.btnNextQ.innerHTML = 'Review & Submit <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+      } else {
+        dom.btnNextQ.innerHTML = 'Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+      }
+
+      updatePaletteState();
+      updateProgressBar();
+    }
+
+    function selectAnswer(questionId, optionIndex) {
+      STATE.userAnswers[questionId] = optionIndex;
+      renderQuestion(STATE.currentQuestionIndex);
+    }
+
+    function clearAnswer(questionId) {
+      delete STATE.userAnswers[questionId];
+      renderQuestion(STATE.currentQuestionIndex);
+    }
+
+    function navigateToQuestion(index) {
+      if (index >= 0 && index < QUESTIONS.length) {
+        renderQuestion(index);
+      }
+    }
+
+    function updatePaletteState() {
+      let answeredCount = 0;
+
+      QUESTIONS.forEach((q, idx) => {
+        const btn = document.getElementById('palette-btn-' + idx);
+        if (!btn) return;
+
+        btn.classList.remove('answered', 'current');
+
+        if (STATE.userAnswers[q.id] !== undefined) {
+          btn.classList.add('answered');
+          answeredCount++;
+        }
+
+        if (idx === STATE.currentQuestionIndex) {
+          btn.classList.add('current');
+        }
+      });
+
+      const unansweredCount = QUESTIONS.length - answeredCount;
+      dom.statAnsweredCount.textContent = answeredCount;
+      dom.statUnansweredCount.textContent = unansweredCount;
+    }
+
+    function updateProgressBar() {
+      const answeredCount = Object.keys(STATE.userAnswers).length;
+      const pct = (answeredCount / QUESTIONS.length) * 100;
+      dom.examProgressBar.style.width = pct + "%";
+    }
+
+    /**
+     * ================================================================
+     * CONFIRMATION MODAL & SUBMISSION
+     * ================================================================
+     */
+    function openSubmissionModal() {
+      const answeredCount = Object.keys(STATE.userAnswers).length;
+      const unansweredCount = QUESTIONS.length - answeredCount;
+
+      dom.modalAnsweredCount.textContent = answeredCount;
+      dom.modalUnansweredCount.textContent = unansweredCount;
+
+      if (unansweredCount > 0) {
+        dom.modalWarningBox.className = "modal-alert warning";
+        dom.modalWarningBox.textContent = "You have " + unansweredCount + " unanswered question(s). You can return to answer them or submit your examination now.";
+      } else {
+        dom.modalWarningBox.className = "modal-alert ready";
+        dom.modalWarningBox.textContent = "Excellent! You have answered all 40 questions. Ready to submit?";
+      }
+
+      dom.submissionModal.classList.add('active');
+    }
+
+    function closeSubmissionModal() {
+      dom.submissionModal.classList.remove('active');
+    }
+
+    function finalizeExamSubmission() {
+      if (STATE.isSubmitted) return;
+      STATE.isSubmitted = true;
+
+      if (STATE.timerInterval) clearInterval(STATE.timerInterval);
+
+      dom.btnModalConfirm.disabled = true;
+      dom.btnHeaderSubmit.disabled = true;
+      dom.btnSidebarSubmit.disabled = true;
+
+      closeSubmissionModal();
+
+      STATE.submissionTime = new Date();
+
+      const results = evaluateExamination();
+      STATE.evaluatedResults = results;
+
+      renderResultScreen(results);
+      showScreen('result');
+
+      sendResultsEmail(results);
+    }
+
+    /**
+     * ================================================================
+     * EVALUATION & SCORING LOGIC
+     * 40 Questions × 2.5 Marks = 100 Marks. Pass = 60%.
+     * ================================================================
+     */
+    function evaluateExamination() {
+      let correctCount = 0;
+      let incorrectCount = 0;
+      let unansweredCount = 0;
+
+      const sectionScores = {};
+      SECTIONS.forEach(sec => {
+        sectionScores[sec.id] = {
+          name: sec.name,
+          total: sec.count,
+          correct: 0,
+          marksObtained: 0,
+          maxMarks: sec.count * 2.5
+        };
+      });
+
+      const questionBreakdown = [];
+
+      QUESTIONS.forEach(q => {
+        const selected = STATE.userAnswers[q.id];
+        let status = "unanswered";
+
+        if (selected === undefined) {
+          unansweredCount++;
+        } else if (selected === q.correctAnswer) {
+          correctCount++;
+          status = "correct";
+          sectionScores[q.sectionId].correct++;
+          sectionScores[q.sectionId].marksObtained += 2.5;
+        } else {
+          incorrectCount++;
+          status = "incorrect";
+        }
+
+        questionBreakdown.push({
+          question: q,
+          selectedAnswer: selected,
+          isCorrect: (selected === q.correctAnswer),
+          status: status
+        });
+      });
+
+      const marksObtained = correctCount * 2.5;
+      const percentage = (marksObtained / 100) * 100;
+      const isPassed = percentage >= 60.0;
+
+      const sectionSummaries = Object.keys(sectionScores).map(secId => {
+        const item = sectionScores[secId];
+        const pct = (item.correct / item.total) * 100;
+        return {
+          id: secId,
+          name: item.name,
+          total: item.total,
+          correct: item.correct,
+          marksObtained: item.marksObtained,
+          maxMarks: item.maxMarks,
+          percentage: pct.toFixed(1)
+        };
+      });
+
+      return {
+        studentName: STATE.studentName,
+        examTitle: "Node.js — Week 1 Technical Assessment",
+        totalQuestions: QUESTIONS.length,
+        correctCount: correctCount,
+        incorrectCount: incorrectCount,
+        unansweredCount: unansweredCount,
+        marksObtained: marksObtained,
+        percentage: percentage,
+        isPassed: isPassed,
+        submissionTime: STATE.submissionTime,
+        submissionTimeFormatted: STATE.submissionTime.toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short"
+        }),
+        sectionSummaries: sectionSummaries,
+        questionBreakdown: questionBreakdown
+      };
+    }
+
+    /**
+     * ================================================================
+     * RESULT SCREEN RENDERER
+     * ================================================================
+     */
+    function renderResultScreen(res) {
+      dom.resStudentName.textContent = res.studentName;
+      dom.resTimestamp.textContent = res.submissionTimeFormatted;
+      dom.resTotalScore.textContent = res.marksObtained.toFixed(1);
+
+      if (res.isPassed) {
+        dom.resStatusBadge.className = "status-pill-big passed";
+        dom.resStatusBadge.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> PASSED';
+      } else {
+        dom.resStatusBadge.className = "status-pill-big failed";
+        dom.resStatusBadge.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> NEEDS IMPROVEMENT';
+      }
+
+      dom.resPercentage.textContent = res.percentage.toFixed(1) + "%";
+      dom.resCorrectCount.textContent = res.correctCount + " (" + (res.correctCount * 2.5).toFixed(1) + " pts)";
+      dom.resIncorrectCount.textContent = res.incorrectCount;
+      dom.resUnansweredCount.textContent = res.unansweredCount;
+
+      dom.filterCorrectCount.textContent = res.correctCount;
+      dom.filterIncorrectCount.textContent = res.incorrectCount;
+      dom.filterUnansweredCount.textContent = res.unansweredCount;
+
+      // Topic-wise analysis
+      dom.topicsBreakdownContainer.innerHTML = "";
+      res.sectionSummaries.forEach(sec => {
+        const row = document.createElement('div');
+        row.className = "topic-row";
+        row.innerHTML = 
+          '<div class="topic-meta">' +
+            '<span class="topic-name">' + sec.name + '</span>' +
+            '<span class="topic-score">' + sec.correct + '/' + sec.total + ' Correct (' + sec.marksObtained.toFixed(1) + '/' + sec.maxMarks.toFixed(1) + ' Marks) — <strong>' + sec.percentage + '%</strong></span>' +
+          '</div>' +
+          '<div class="topic-progress-track">' +
+            '<div class="topic-progress-fill" style="width: ' + sec.percentage + '%;"></div>' +
+          '</div>';
+        dom.topicsBreakdownContainer.appendChild(row);
+      });
+
+      renderQuestionReviewList(res.questionBreakdown, "all");
+    }
+
+    function renderQuestionReviewList(breakdown, filter) {
+      dom.reviewList.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+
+      breakdown.forEach((item, idx) => {
+        if (filter !== "all" && item.status !== filter) {
+          return;
+        }
+
+        const q = item.question;
+        const card = document.createElement('div');
+        card.className = "review-card";
+
+        let statusBadge = "";
+        if (item.status === "correct") {
+          statusBadge = '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Correct (+2.5)</span>';
+        } else if (item.status === "incorrect") {
+          statusBadge = '<span class="badge badge-danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Incorrect (0.0)</span>';
+        } else {
+          statusBadge = '<span class="badge badge-warning">Unanswered (0.0)</span>';
+        }
+
+        let optionsHtml = "";
+        q.options.forEach((optText, optIdx) => {
+          let optClass = "review-option";
+          let badgeText = "";
+
+          if (optIdx === q.correctAnswer) {
+            optClass += " correct";
+            badgeText = '<span style="margin-left: auto; color: var(--green-700); font-size: 0.75rem; font-weight: 700;">✓ CORRECT ANSWER</span>';
+          }
+
+          if (item.selectedAnswer === optIdx && !item.isCorrect) {
+            optClass += " user-selected-wrong";
+            badgeText = '<span style="margin-left: auto; color: var(--red-600); font-size: 0.75rem; font-weight: 700;">✗ YOUR SELECTION</span>';
+          } else if (item.selectedAnswer === optIdx && item.isCorrect) {
+            badgeText = '<span style="margin-left: auto; color: var(--green-700); font-size: 0.75rem; font-weight: 700;">✓ YOUR SELECTION & CORRECT</span>';
+          }
+
+          optionsHtml += 
+            '<div class="' + optClass + '">' +
+              '<div class="option-letter" style="width: 24px; height: 24px; font-size: 0.75rem;">' + letters[optIdx] + '</div>' +
+              '<div style="flex: 1;">' + optText + '</div>' +
+              badgeText +
+            '</div>';
+        });
+
+        card.innerHTML = 
+          '<div class="review-card-header">' +
+            '<div><span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Q' + q.id + ' • ' + q.sectionName + '</span></div>' +
+            '<div>' + statusBadge + '</div>' +
+          '</div>' +
+          '<div style="font-size: 1.05rem; font-weight: 600; color: var(--text-navy-900); margin-bottom: 1.25rem;">' +
+            q.id + '. ' + q.question +
+          '</div>' +
+          '<div class="review-options">' +
+            optionsHtml +
+          '</div>' +
+          '<div class="review-explanation">' +
+            '<strong>Technical Explanation:</strong>' +
+            q.explanation +
+          '</div>';
+
+        dom.reviewList.appendChild(card);
+      });
+
+      if (dom.reviewList.children.length === 0) {
+        dom.reviewList.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); background: #ffffff; border-radius: var(--radius-md); border: 1px solid var(--border-color);">No questions match the selected filter.</div>';
+      }
+    }
+
+    /**
+     * ================================================================
+     * EMAILJS NOTIFICATION DISPATCHER
+     * ================================================================
+     */
+    function sendResultsEmail(results) {
+      showEmailBanner("sending", "Dispatching examination report to examiner...");
+
+      const topicLines = results.sectionSummaries.map(s => 
+        "• " + s.name + ": " + s.correct + "/" + s.total + " (" + s.percentage + "%)"
+      );
+      const topicText = topicLines.join("\n");
+
+      const templateParams = {
+        student_name: results.studentName,
+        exam_name: results.examTitle,
+        total_marks: "100",
+        score: results.marksObtained.toFixed(1),
+        percentage: results.percentage.toFixed(1) + "%",
+        status: results.isPassed ? "PASSED" : "FAILED",
+        correct_answers: results.correctCount,
+        incorrect_answers: results.incorrectCount,
+        unanswered_questions: results.unansweredCount,
+        submission_time: results.submissionTimeFormatted,
+        topic_breakdown: topicText,
+        // Standard EmailJS variable fallbacks
+        name: results.studentName,
+        to_name: "Examiner",
+        from_name: results.studentName,
+        message: "Node.js Week 1 Assessment Results:\n" +
+                 "Candidate: " + results.studentName + "\n" +
+                 "Score: " + results.marksObtained.toFixed(1) + " / 100 (" + results.percentage.toFixed(1) + "%)\n" +
+                 "Status: " + (results.isPassed ? "PASSED" : "FAILED") + "\n" +
+                 "Correct: " + results.correctCount + ", Incorrect: " + results.incorrectCount + ", Unanswered: " + results.unansweredCount + "\n\n" +
+                 "Topic Breakdown:\n" + topicText + "\n\n" +
+                 "Submitted: " + results.submissionTimeFormatted
+      };
+
+      if (typeof emailjs === 'undefined') {
+        showEmailBanner("error", "EmailJS SDK is not loaded. Please check your network connection.", true);
+        return;
+      }
+
+      emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
+        .then(function(response) {
+          console.log("EmailJS Dispatch SUCCESS:", response.status, response.text);
+          showEmailBanner("success", "Examination results successfully dispatched to the examiner's email.");
+        })
+        .catch(function(error) {
+          console.error("EmailJS Dispatch ERROR:", error);
+          const errorMsg = (error && (error.text || error.message)) ? (error.text || error.message) : "Please verify EmailJS template and service configuration.";
+          showEmailBanner("error", "Failed to dispatch email: " + errorMsg, true);
+        });
+    }
+
+    function showEmailBanner(type, message, canRetry = false) {
+      dom.emailStatusBanner.className = "email-status-banner " + type;
+      dom.emailStatusText.textContent = message;
+
+      if (type === "sending") {
+        dom.emailSpinner.style.display = "block";
+        dom.btnRetryEmail.style.display = "none";
+      } else if (type === "success") {
+        dom.emailSpinner.style.display = "none";
+        dom.btnRetryEmail.style.display = "none";
+      } else if (type === "error") {
+        dom.emailSpinner.style.display = "none";
+        dom.btnRetryEmail.style.display = canRetry ? "inline-flex" : "none";
+      }
+    }
+
+    /**
+     * ================================================================
+     * EVENT LISTENERS INITIALIZATION
+     * ================================================================
+     */
+    function setupEventListeners() {
+      // Start Examination
+      dom.btnStartExam.addEventListener('click', () => {
+        const name = dom.studentNameInput.value.trim();
+        if (!name || name.length < 2) {
+          dom.studentNameInput.classList.add('error');
+          dom.studentNameError.style.display = 'block';
+          dom.studentNameInput.focus();
+          return;
+        }
+
+        dom.studentNameInput.classList.remove('error');
+        dom.studentNameError.style.display = 'none';
+
+        STATE.studentName = name;
+        dom.displayStudentName.textContent = name;
+
+        showScreen('exam');
+        initExamRuntime();
+      });
+
+      dom.studentNameInput.addEventListener('input', () => {
+        if (dom.studentNameInput.value.trim().length >= 2) {
+          dom.studentNameInput.classList.remove('error');
+          dom.studentNameError.style.display = 'none';
+        }
+      });
+
+      // Prev & Next Buttons
+      dom.btnPrevQ.addEventListener('click', () => {
+        if (STATE.currentQuestionIndex > 0) {
+          renderQuestion(STATE.currentQuestionIndex - 1);
+        }
+      });
+
+      dom.btnNextQ.addEventListener('click', () => {
+        if (STATE.currentQuestionIndex < QUESTIONS.length - 1) {
+          renderQuestion(STATE.currentQuestionIndex + 1);
+        } else {
+          openSubmissionModal();
+        }
+      });
+
+      // Clear Selection Button
+      dom.btnClearSelection.addEventListener('click', () => {
+        const currentQ = QUESTIONS[STATE.currentQuestionIndex];
+        clearAnswer(currentQ.id);
+      });
+
+      // Submit Examination Triggers
+      dom.btnHeaderSubmit.addEventListener('click', openSubmissionModal);
+      dom.btnSidebarSubmit.addEventListener('click', openSubmissionModal);
+
+      // Modal Actions
+      dom.btnModalCancel.addEventListener('click', closeSubmissionModal);
+      dom.btnModalConfirm.addEventListener('click', finalizeExamSubmission);
+
+      // Close modal on click outside
+      dom.submissionModal.addEventListener('click', (e) => {
+        if (e.target === dom.submissionModal) {
+          closeSubmissionModal();
+        }
+      });
+
+      // Review Filter Buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          const filter = e.target.getAttribute('data-filter');
+          if (STATE.evaluatedResults) {
+            renderQuestionReviewList(STATE.evaluatedResults.questionBreakdown, filter);
+          }
+        });
+      });
+
+      // Retry Email Button
+      dom.btnRetryEmail.addEventListener('click', () => {
+        if (STATE.evaluatedResults) {
+          sendResultsEmail(STATE.evaluatedResults);
+        }
+      });
+
+      // Print / Save PDF
+      dom.btnPrintResult.addEventListener('click', () => {
+        window.print();
+      });
+
+      // Retake Exam Button
+      dom.btnRetakeExam.addEventListener('click', () => {
+        if (confirm("Are you sure you want to start a new assessment? This will reset all current answers.")) {
+          STATE.studentName = "";
+          STATE.currentQuestionIndex = 0;
+          STATE.userAnswers = {};
+          STATE.timerSeconds = 90 * 60;
+          STATE.isSubmitted = false;
+          STATE.submissionTime = null;
+          STATE.evaluatedResults = null;
+
+          dom.studentNameInput.value = "";
+          dom.btnModalConfirm.disabled = false;
+          dom.btnHeaderSubmit.disabled = false;
+          dom.btnSidebarSubmit.disabled = false;
+          dom.timerCard.classList.remove('warning');
+
+          showScreen('welcome');
+        }
+      });
+
+      // Keyboard arrow navigation
+      window.addEventListener('keydown', (e) => {
+        if (screens.exam.classList.contains('active') && !dom.submissionModal.classList.contains('active')) {
+          if (e.key === 'ArrowLeft' && STATE.currentQuestionIndex > 0) {
+            renderQuestion(STATE.currentQuestionIndex - 1);
+          } else if (e.key === 'ArrowRight' && STATE.currentQuestionIndex < QUESTIONS.length - 1) {
+            renderQuestion(STATE.currentQuestionIndex + 1);
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', setupEventListeners);
+  </script>
+</body>
+</html>
